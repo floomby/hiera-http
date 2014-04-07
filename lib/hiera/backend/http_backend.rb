@@ -25,6 +25,14 @@ class Hiera
         else
           @http.use_ssl = false
         end
+
+        @keyfile  = @config[:keyfile]
+        @certfile = @config[:certfile]
+
+        if @keyfile && @certfile
+          @key  = OpenSSL::PKey::RSA.new File.read(@keyfile)
+          @cert = OpenSSL::X509::Certificate.new File.read(@certfile)
+        end
       end
 
       def lookup(key, scope, order_override, resolution_type)
@@ -84,12 +92,6 @@ class Hiera
 
         case @config[:output]
 
-        when 'plain'
-          # When the output format is configured as plain we assume that if the
-          # endpoint URL returns an HTTP success then the contents of the response
-          # body is the value itself, or nil.
-          #
-          answer
         when 'json'
           # If JSON is specified as the output format, assume the output of the
           # endpoint URL is a JSON document and return keypart that matched our
@@ -101,6 +103,10 @@ class Hiera
           # lookup key
           self.yaml_handler(key,answer)
         else
+          # When the output format is configured as plain we assume that if the
+          # endpoint URL returns an HTTP success then the contents of the response
+          # body is the value itself, or nil.
+          #
           answer
         end
       end
@@ -109,15 +115,22 @@ class Hiera
       # Here we define specific handlers to parse the output of the http request
       # and return a value.  Currently we support YAML and JSON
       #
-      def json_handler(key,answer)
-        require 'rubygems'
+      def json_handler(key, answer)
         require 'json'
-        JSON.parse(answer)[key]
+        self.decrypt(JSON.parse(answer)[key])
       end
 
-      def yaml_handler(answer)
+      def yaml_handler(key, answer)
         require 'yaml'
-        YAML.parse(answer)[key]
+        self.decrypt(YAML.load(answer)[key])
+      end
+
+      def decrypt(answer)
+        if @keyfile && @certfile
+          answer
+        else
+          answer
+        end
       end
 
     end

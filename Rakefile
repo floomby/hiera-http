@@ -15,6 +15,6 @@ spec = Gem::Specification.new do |gem|
 end
 
 Gem::PackageTask.new(spec) do |pkg|
-    pkg.need_tar = true
+#    pkg.need_tar = true
     pkg.gem_spec = spec
 end
