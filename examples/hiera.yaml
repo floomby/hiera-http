@@ -1,0 +1,13 @@
+---
+:backends:
+  - http
+
+:http:
+  :host: 127.0.0.1
+  :port: 5984
+  :output: json
+  :failure: graceful
+  :keyfile: examples/key.pem
+  :certfile: examples/cert.pem
+  :paths:
+    - /test/test

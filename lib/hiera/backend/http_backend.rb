@@ -29,6 +29,8 @@ class Hiera
         @keyfile  = @config[:keyfile]
         @certfile = @config[:certfile]
 
+        # we will read in the key and the cert
+        # then we will create a cipher object to use
         if @keyfile && @certfile
           @key  = OpenSSL::PKey::RSA.new File.read(@keyfile)
           @cert = OpenSSL::X509::Certificate.new File.read(@certfile)
@@ -127,7 +129,19 @@ class Hiera
 
       def decrypt(answer)
         if @keyfile && @certfile
-          answer
+          require 'base64'
+          if a = /ENC\[([^,]+),([^\]]+)\]/.match(answer)
+            # right now we only support PKCS7 (using a little 
+            #   reflective programming we can remedy this)
+            if a[1] != 'PKCS7'
+              fail 'At this time the only supported algorithm is PKCS7'
+            end
+            
+            # we are good to decrypt
+            (OpenSSL::PKCS7.new Base64.decode64 a[2]).decrypt @key, @cert
+          else
+            answer
+          end
         else
           answer
         end
